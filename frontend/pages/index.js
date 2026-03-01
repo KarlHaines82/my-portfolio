@@ -72,7 +72,11 @@ export default function Home({ testimonials }) {
 export async function getServerSideProps() {
   try {
     const response = await import('@/lib/api').then(m => m.default.get('/testimonials/'));
-    return { props: { testimonials: response.data || [] } };
+    return {
+      props: {
+        testimonials: Array.isArray(response.data.results) ? response.data.results : (Array.isArray(response.data) ? response.data : [])
+      }
+    };
   } catch (error) {
     return { props: { testimonials: [] } };
   }

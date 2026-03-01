@@ -134,7 +134,7 @@ export async function getServerSideProps() {
         ]);
         return {
             props: {
-                skills: skillsRes.data || [],
+                skills: Array.isArray(skillsRes.data.results) ? skillsRes.data.results : (Array.isArray(skillsRes.data) ? skillsRes.data : []),
                 github: githubRes.data || null
             }
         };

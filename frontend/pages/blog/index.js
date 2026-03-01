@@ -142,9 +142,9 @@ export async function getServerSideProps() {
         ]);
         return {
             props: {
-                initialPosts: postsRes.data.results || postsRes.data || [],
-                categories: catsRes.data || [],
-                tags: tagsRes.data || []
+                initialPosts: Array.isArray(postsRes.data.results) ? postsRes.data.results : (Array.isArray(postsRes.data) ? postsRes.data : []),
+                categories: Array.isArray(catsRes.data.results) ? catsRes.data.results : (Array.isArray(catsRes.data) ? catsRes.data : []),
+                tags: Array.isArray(tagsRes.data.results) ? tagsRes.data.results : (Array.isArray(tagsRes.data) ? tagsRes.data : [])
             }
         };
     } catch (error) {

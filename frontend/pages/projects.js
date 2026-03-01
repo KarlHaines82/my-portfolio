@@ -86,7 +86,16 @@ export default function Projects({ projects }) {
 export async function getServerSideProps() {
     try {
         const response = await api.get('/projects/');
-        return { props: { projects: response.data || [] } };
+        const projects = Array.isArray(response.data.results) ? response.data.results : (Array.isArray(response.data) ? response.data : []);
+        const sanitizedProjects = projects.map(p => ({
+            ...p,
+            tech_stack_list: Array.isArray(p.tech_stack_list) ? p.tech_stack_list : []
+        }));
+        return {
+            props: {
+                projects: sanitizedProjects
+            }
+        };
     } catch (error) {
         return { props: { projects: [] } };
     }

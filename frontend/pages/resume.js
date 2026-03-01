@@ -88,7 +88,16 @@ export default function Resume({ resumeData }) {
 export async function getServerSideProps() {
     try {
         const response = await api.get('/resume/');
-        return { props: { resumeData: response.data } };
+        const data = response.data || {};
+        return {
+            props: {
+                resumeData: {
+                    ...data,
+                    experience: Array.isArray(data.experience) ? data.experience : [],
+                    education: Array.isArray(data.education) ? data.education : []
+                }
+            }
+        };
     } catch (error) {
         return { props: { resumeData: null } };
     }

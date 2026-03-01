@@ -9,7 +9,7 @@ import { useState } from 'react';
 export default function BlogPost({ post }) {
     const { data: session } = useSession();
     const [comment, setComment] = useState('');
-    const [comments, setComments] = useState(post?.comments || []);
+    const [comments, setComments] = useState(Array.isArray(post?.comments) ? post.comments : []);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     if (!post) return <Layout>LOG_ENTRY_NOT_FOUND</Layout>;
@@ -22,7 +22,7 @@ export default function BlogPost({ post }) {
             await api.post(`/blog/posts/${post.slug}/comments/`, { content: comment });
             // Refresh comments
             const response = await api.get(`/blog/posts/${post.slug}/`);
-            setComments(response.data.comments);
+            setComments(Array.isArray(response.data.comments) ? response.data.comments : []);
             setComment('');
         } catch (err) {
             console.error(err);
@@ -127,7 +127,12 @@ export async function getServerSideProps(context) {
     const { slug } = context.params;
     try {
         const response = await api.get(`/blog/posts/${slug}/`);
-        return { props: { post: response.data } };
+        const post = response.data;
+        if (post) {
+            post.tags = Array.isArray(post.tags) ? post.tags : [];
+            post.comments = Array.isArray(post.comments) ? post.comments : [];
+        }
+        return { props: { post } };
     } catch (error) {
         console.error("Blog post error:", error.message);
         return { props: { post: null } };

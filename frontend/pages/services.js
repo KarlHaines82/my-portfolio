@@ -55,7 +55,11 @@ export default function Services({ services }) {
 export async function getServerSideProps() {
     try {
         const response = await api.get('/services/');
-        return { props: { services: response.data } };
+        return {
+            props: {
+                services: Array.isArray(response.data.results) ? response.data.results : (Array.isArray(response.data) ? response.data : [])
+            }
+        };
     } catch (error) {
         return { props: { services: [] } };
     }
