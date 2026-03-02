@@ -14,6 +14,7 @@ urlpatterns = [
     path("api/projects/", include("projects.urls")),
     path("api/testimonials/", include("testimonials.urls")),
     path("api/pages/", include("pages.urls")),
+    path("api/ai/", include("ai_blog_writer.urls")),
 ]
 
 if settings.DEBUG:

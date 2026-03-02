@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "projects.apps.ProjectsConfig",
     "testimonials.apps.TestimonialsConfig",
     "pages.apps.PagesConfig",
+    "ai_blog_writer.apps.AiBlogWriterConfig",
 ]
 
 MIDDLEWARE = [
