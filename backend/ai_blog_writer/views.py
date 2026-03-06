@@ -6,8 +6,8 @@ from rest_framework.permissions import IsAdminUser, AllowAny
 from django.contrib.auth import get_user_model
 from .orchestrator import BlogOrchestrator
 import json
-import requests
 from django.core.files.base import ContentFile
+
 from decouple import config
 
 class GenerateTopicsView(APIView):
@@ -72,6 +72,16 @@ class PublishBlogView(APIView):
         # Truncate meta_description to avoid DataError if the AI generates too many characters
         if meta_description and len(meta_description) > 160:
             meta_description = meta_description[:157] + "..."
+
+        # Auto-generate an excerpt from the first ~300 chars of content.
+        # Strip leading Markdown heading lines (e.g. "# Title") so the excerpt
+        # reads as clean prose rather than a raw heading.
+        excerpt = ""
+        if content:
+            lines = content.strip().splitlines()
+            prose_lines = [l for l in lines if not l.strip().startswith("#")]
+            prose_text = " ".join(l.strip() for l in prose_lines if l.strip())
+            excerpt = prose_text[:300].rsplit(" ", 1)[0] if len(prose_text) > 300 else prose_text
             
         tags_input = request.data.get("tags", [])
         # Save to database
@@ -84,9 +94,10 @@ class PublishBlogView(APIView):
         post = Post.objects.create(
             title=title,
             content=content,
+            excerpt=excerpt,
             meta_description=meta_description,
             author=author,
-            is_published=False # Keep as draft by default
+            is_published=False  # Keep as draft by default
         )
         
         for tag_name in tags_input:
@@ -95,24 +106,35 @@ class PublishBlogView(APIView):
             
         post.save()
         
-        # Generate Featured Image if requested using free Hugging Face Inference API
+        # Generate Featured Image if requested using Hugging Face InferenceClient
+        image_generated = False
+        image_error = None
         if image_prompt:
             try:
-                # Using a popular free stable diffusion model on Hugging Face
-                API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-3.5-large"
-                # While HF has a free tier that works without a key, providing one is more reliable
+                from huggingface_hub import InferenceClient
+                import io
                 hf_api_key = config("HUGGINGFACE_API_KEY", default="")
-                headers = {"Authorization": f"Bearer {hf_api_key}"} if hf_api_key else {}
-                
-                response = requests.post(API_URL, headers=headers, json={"inputs": image_prompt})
-                
-                if response.status_code == 200:
-                    image_data = response.content
-                    filename = f"blog-ai-{post.slug}.png"
-                    post.featured_image.save(filename, ContentFile(image_data), save=True)
-                else:
-                    print(f"Failed to generate image via Hugging Face. Status {response.status_code}: {response.text}")
+                client = InferenceClient(api_key=hf_api_key if hf_api_key else None)
+                # Use FLUX.1-dev — HF's recommended model for text-to-image
+                image = client.text_to_image(
+                    prompt=image_prompt,
+                    model="black-forest-labs/FLUX.1-dev",
+                )
+                # image is a PIL Image — convert to bytes
+                buffer = io.BytesIO()
+                image.save(buffer, format="PNG")
+                image_data = buffer.getvalue()
+                filename = f"blog-ai-{post.slug}.png"
+                post.featured_image.save(filename, ContentFile(image_data), save=True)
+                image_generated = True
+                print(f"Featured image saved: {filename}")
             except Exception as e:
+                image_error = str(e)
                 print(f"Failed to generate featured image via Hugging Face: {e}")
         
-        return Response({"status": "published", "slug": post.slug})
+        return Response({
+            "status": "published",
+            "slug": post.slug,
+            "image_generated": image_generated,
+            "image_error": image_error,
+        })

@@ -79,21 +79,30 @@ export default function AIBlogWriter() {
     };
 
     const handlePublish = async () => {
+        if (!selectedTopic) {
+            addLog('Error: No topic selected.');
+            return;
+        }
         setLoading(true);
         addLog('System: Uploading to Crypto-Database...');
         try {
             const config = { headers: { Authorization: `Bearer ${session?.accessToken}` } };
-            await axios.post('http://localhost:8000/api/ai/publish-blog/', {
+            const res = await axios.post('http://localhost:8000/api/ai/publish-blog/', {
                 title: selectedTopic.title,
                 content: draft,
-                meta_description: seo.meta_description,
-                tags: seo.tags,
+                meta_description: seo?.meta_description || '',
+                tags: seo?.tags || [],
                 image_prompt: imagePrompt
             }, config);
-            addLog('SUCCESS: Transmission complete. Post in queue.');
+            if (res.data.image_generated) {
+                addLog('FeaturedImage: Generated and saved successfully.');
+            } else if (imagePrompt) {
+                addLog(`FeaturedImage: Generation failed — ${res.data.image_error || 'unknown error'}`);
+            }
+            addLog('SUCCESS: Transmission complete. Post saved as draft.');
             alert('Blog post saved successfully as draft!');
         } catch (err) {
-            addLog('Error: Transmission failed.');
+            addLog(`Error: Transmission failed — ${err.message}`);
         }
         setLoading(false);
     };

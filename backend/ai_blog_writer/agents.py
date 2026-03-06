@@ -2,44 +2,50 @@ import os
 import google.generativeai as genai
 from decouple import config
 
+
 class BaseAgent:
     def __init__(self, model="gemini-2.5-flash"):
         # Prioritize GEMINI_API_KEY since google.generativeai targets Google AI Studio
-        api_key = config("GEMINI_API_KEY", default=config("VERTEX_AI_API_KEY", default=""))
+        api_key = config(
+            "GEMINI_API_KEY", default=config("VERTEX_AI_API_KEY", default="")
+        )
         genai.configure(api_key=api_key)
         self.model = model
 
     def get_completion(self, messages, temperature=0.7):
         system_instruction = ""
         user_content = ""
-        
+
         for m in messages:
             if m["role"] == "system":
                 system_instruction += m["content"] + "\n"
             elif m["role"] == "user":
                 user_content += m["content"] + "\n"
-                
+
         model_instance = genai.GenerativeModel(
             model_name=self.model,
-            system_instruction=system_instruction.strip() if system_instruction else None,
+            system_instruction=(
+                system_instruction.strip() if system_instruction else None
+            ),
             generation_config=genai.types.GenerationConfig(
                 temperature=temperature,
-            )
+            ),
         )
-        
+
         response = model_instance.generate_content(user_content.strip())
         text = response.text
-        
+
         # Clean up markdown code blocks to ensure JSON parses correctly in orchestrator
         if text.startswith("```json"):
             text = text[7:]
         elif text.startswith("```"):
             text = text[3:]
-            
+
         if text.endswith("```"):
             text = text[:-3]
-            
+
         return text.strip()
+
 
 class TopicsAgent(BaseAgent):
     def generate_topics(self, portfolio_context):
@@ -54,8 +60,12 @@ class TopicsAgent(BaseAgent):
         The topics should appeal to other developers and potential clients. They should blend technical expertise with personal insight.
         Return the response as a JSON list of objects with "title" and "description" keys.
         """
-        messages = [{"role": "system", "content": "You are a content strategist."}, {"role": "user", "content": prompt}]
+        messages = [
+            {"role": "system", "content": "You are a content strategist."},
+            {"role": "user", "content": prompt},
+        ]
         return self.get_completion(messages)
+
 
 class BlogAuthor(BaseAgent):
     def write_article(self, topic, description, style_context=""):
@@ -73,8 +83,12 @@ class BlogAuthor(BaseAgent):
         - A concluding thought or call to action.
         - Relevant code snippets if applicable.
         """
-        messages = [{"role": "system", "content": "You are an expert technical author."}, {"role": "user", "content": prompt}]
+        messages = [
+            {"role": "system", "content": "You are an expert technical author."},
+            {"role": "user", "content": prompt},
+        ]
         return self.get_completion(messages)
+
 
 class FactChecker(BaseAgent):
     def review_article(self, content):
@@ -87,8 +101,15 @@ class FactChecker(BaseAgent):
         Provide a list of corrections or suggestions for improvement. If everything is correct, state so.
         Return the response in Markdown.
         """
-        messages = [{"role": "system", "content": "You are a meticulous fact-checker and technical reviewer."}, {"role": "user", "content": prompt}]
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a meticulous fact-checker and technical reviewer.",
+            },
+            {"role": "user", "content": prompt},
+        ]
         return self.get_completion(messages)
+
 
 class SEOOptimizer(BaseAgent):
     def optimize(self, title, content):
@@ -104,8 +125,15 @@ class SEOOptimizer(BaseAgent):
         
         Return the response as a JSON object with keys: "tags", "meta_description", "suggestions".
         """
-        messages = [{"role": "system", "content": "You are an SEO expert specializing in technical content."}, {"role": "user", "content": prompt}]
+        messages = [
+            {
+                "role": "system",
+                "content": "You are an SEO expert specializing in technical content.",
+            },
+            {"role": "user", "content": prompt},
+        ]
         return self.get_completion(messages)
+
 
 class ImageCreator(BaseAgent):
     def generate_image_prompt(self, title, content_summary):
@@ -119,5 +147,11 @@ class ImageCreator(BaseAgent):
         
         Return ONLY the prompt string.
         """
-        messages = [{"role": "system", "content": "You are a creative director and prompt engineer."}, {"role": "user", "content": prompt}]
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a creative director and prompt engineer.",
+            },
+            {"role": "user", "content": prompt},
+        ]
         return self.get_completion(messages)
