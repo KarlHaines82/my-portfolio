@@ -106,31 +106,28 @@ class PublishBlogView(APIView):
             
         post.save()
         
-        # Generate Featured Image if requested using Hugging Face InferenceClient
+        # Generate Featured Image using Google Imagen 3 via new google-genai SDK
         image_generated = False
         image_error = None
         if image_prompt:
             try:
-                from huggingface_hub import InferenceClient
-                import io
-                hf_api_key = config("HUGGINGFACE_API_KEY", default="")
-                client = InferenceClient(api_key=hf_api_key if hf_api_key else None)
-                # Use FLUX.1-dev — HF's recommended model for text-to-image
-                image = client.text_to_image(
+                from google import genai
+                from google.genai import types as genai_types
+                gemini_api_key = config("GEMINI_API_KEY", default="")
+                img_client = genai.Client(api_key=gemini_api_key)
+                result = img_client.models.generate_images(
+                    model="imagen-3.0-generate-002",
                     prompt=image_prompt,
-                    model="black-forest-labs/FLUX.1-dev",
+                    config=genai_types.GenerateImagesConfig(number_of_images=1),
                 )
-                # image is a PIL Image — convert to bytes
-                buffer = io.BytesIO()
-                image.save(buffer, format="PNG")
-                image_data = buffer.getvalue()
+                image_data = result.generated_images[0].image.image_bytes
                 filename = f"blog-ai-{post.slug}.png"
                 post.featured_image.save(filename, ContentFile(image_data), save=True)
                 image_generated = True
                 print(f"Featured image saved: {filename}")
             except Exception as e:
                 image_error = str(e)
-                print(f"Failed to generate featured image via Hugging Face: {e}")
+                print(f"Failed to generate featured image via Google Imagen: {e}")
         
         return Response({
             "status": "published",

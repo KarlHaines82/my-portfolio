@@ -1,15 +1,15 @@
 import os
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from decouple import config
 
 
 class BaseAgent:
     def __init__(self, model="gemini-2.5-flash"):
-        # Prioritize GEMINI_API_KEY since google.generativeai targets Google AI Studio
         api_key = config(
             "GEMINI_API_KEY", default=config("VERTEX_AI_API_KEY", default="")
         )
-        genai.configure(api_key=api_key)
+        self.client = genai.Client(api_key=api_key)
         self.model = model
 
     def get_completion(self, messages, temperature=0.7):
@@ -22,17 +22,14 @@ class BaseAgent:
             elif m["role"] == "user":
                 user_content += m["content"] + "\n"
 
-        model_instance = genai.GenerativeModel(
-            model_name=self.model,
-            system_instruction=(
-                system_instruction.strip() if system_instruction else None
-            ),
-            generation_config=genai.types.GenerationConfig(
+        response = self.client.models.generate_content(
+            model=self.model,
+            contents=user_content.strip(),
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction.strip() or None,
                 temperature=temperature,
             ),
         )
-
-        response = model_instance.generate_content(user_content.strip())
         text = response.text
 
         # Clean up markdown code blocks to ensure JSON parses correctly in orchestrator
