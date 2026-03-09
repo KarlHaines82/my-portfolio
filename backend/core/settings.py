@@ -210,7 +210,7 @@ GITHUB_USERNAME = config("GITHUB_USERNAME", default="KarlHaines82")
 JAZZMIN_SETTINGS = {
     "site_title": "Portfolio Admin",
     "site_header": "Portfolio",
-    "site_brand": "NEO-TERMINAL",
+    "site_brand": "Karl Haines [NEO-TERMINAL]",
     "site_logo": None,
     "welcome_sign": "Welcome to the Portfolio Admin",
     "copyright": "Karl Haines",
