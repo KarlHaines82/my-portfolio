@@ -135,7 +135,7 @@ class SEOOptimizer(BaseAgent):
 class ImageCreator(BaseAgent):
     def generate_image_prompt(self, title, content_summary):
         prompt = f"""
-        Create a detailed prompt for an AI image generator (like DALL-E) to create a featured image for a blog post.
+        Create a detailed prompt for Gemini's AI image generator to create a featured image for a blog post.
         Title: {title}
         Summary: {content_summary}
         
