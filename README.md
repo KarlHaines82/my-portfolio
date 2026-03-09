@@ -48,8 +48,8 @@ graph TD
 
 ### Backend
 ```bash
-cd backend
 source venv/bin/activate
+cd backend
 python manage.py runserver
 ```
 Admin: [localhost:8000/admin/](http://localhost:8000/admin/) (admin / Admin1234!)
