@@ -106,71 +106,34 @@ class PublishBlogView(APIView):
             
         post.save()
         
-        # Generate Featured Image using Gemini native image generation (Nano Banana)
+        # Generate Featured Image using Hugging Face Inference API (Free)
         image_generated = False
         image_error = None
         if image_prompt:
             try:
-                from google import genai
-                from google.genai import types as genai_types
-                import base64
-                gemini_api_key = config("GEMINI_API_KEY", default="")
-                img_client = genai.Client(api_key=gemini_api_key)
-
-                # Try Gemini native image generation first
-                gemini_models = [
-                    "gemini-3.1-flash-image-preview",
-                    "gemini-2.5-flash-image",
-                    "gemini-3-pro-image-preview"
-                ]
+                import requests
+                hf_api_key = config("HUGGINGFACE_API_KEY", default="")
+                if not hf_api_key:
+                    raise Exception("HUGGINGFACE_API_KEY is not configured.")
                 
-                image_data = None
-                for model_name in gemini_models:
-                    try:
-                        result = img_client.models.generate_content(
-                            model=model_name,
-                            contents=image_prompt,
-                            config=genai_types.GenerateContentConfig(
-                                response_modalities=["IMAGE"],
-                            ),
-                        )
-                        for part in result.candidates[0].content.parts:
-                            if part.inline_data is not None:
-                                image_data = base64.b64decode(part.inline_data.data)
-                                break
-                        if image_data:
-                            print(f"Successfully generated image with {model_name}")
-                            break
-                    except Exception as e:
-                        print(f"Gemini native failed with {model_name}: {e}")
-
-                # Fallback to standard Imagen if native fails
-                if not image_data:
-                    imagen_models = ["imagen-3.0-generate-001", "imagen-4.0-generate-001"]
-                    for model_name in imagen_models:
-                        try:
-                            result = img_client.models.generate_images(
-                                model=model_name,
-                                prompt=image_prompt,
-                                config=genai_types.GenerateImagesConfig(number_of_images=1),
-                            )
-                            image_data = result.generated_images[0].image.image_bytes
-                            if image_data:
-                                print(f"Successfully generated image with {model_name}")
-                                break
-                        except Exception as e:
-                            print(f"Imagen fallback failed with {model_name}: {e}")
-                            
-                if not image_data:
-                    raise Exception("All image generation models failed (404 Not Found or other API error).")
-
-                filename = f"blog-ai-{post.slug}.png"
-                post.featured_image.save(filename, ContentFile(image_data), save=True)
-                image_generated = True
-                print(f"Featured image saved: {filename}")
+                API_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
+                headers = {"Authorization": f"Bearer {hf_api_key}"}
+                
+                payload = {"inputs": image_prompt}
+                response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
+                
+                if response.status_code == 200:
+                    image_data = response.content
+                    filename = f"blog-ai-{post.slug}.png"
+                    post.featured_image.save(filename, ContentFile(image_data), save=True)
+                    image_generated = True
+                    print(f"Featured image saved: {filename}")
+                else:
+                    raise Exception(f"HF API returned {response.status_code}: {response.text}")
+                    
             except Exception as e:
                 image_error = str(e)
-                print(f"Failed to generate featured image: {e}")
+                print(f"Failed to generate featured image via Hugging Face: {e}")
         
         return Response({
             "status": "published",
