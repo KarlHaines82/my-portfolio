@@ -20,12 +20,7 @@
   ];
 
   # Sets environment variables in the workspace
-  env = {
-    VERTEX_API_KEY="AQ.Ab8RN6I2fHKQPUY53CuEjRU3xLbV1cAcUeHlszy8JPxHoZyE8g";
-    GEMINI_API_KEY="AIzaSyAa6Su_K2leVPsQfYZ3Z7z3KKgIXwpW_-U";
-    OPENAI_API_KEY="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";
-    GOOGLE_CLOUD_PROKECT="developer-profile-karl";
-  };
+  env = {};
   idx = {
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
     extensions = [
